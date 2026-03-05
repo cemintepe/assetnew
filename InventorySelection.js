@@ -4,6 +4,8 @@ import {
   FlatList, ActivityIndicator, SafeAreaView, Alert 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from './supabase';
+
 
 export default function InventorySelection({ customer, dealer, onBack, onSelectInventory }) {
   const [inventory, setInventory] = useState([]);
@@ -11,16 +13,28 @@ export default function InventorySelection({ customer, dealer, onBack, onSelectI
 
   useEffect(() => {
     fetchInventory();
-  }, []);
+  }, [dealer]); // dealer değişirse tekrar çek
 
   const fetchInventory = async () => {
     try {
-      // PHP Controller'daki dealer_code parametresini gönderiyoruz
-      const response = await fetch(`https://isletmem.online/asset/api/dealer-inventory?dealer_code=${dealer}`);
-      const data = await response.json();
+      setLoading(true);
+      
+      // SUPABASE SORGUSU
+      // Not: dealer_code parametresine göre stokları çekiyoruz
+      const { data, error } = await supabase
+        .from('equipments') 
+        .select('*')
+        .eq('current_location_code', dealer);
+
+      if (error) throw error;
+
+      // Eğer Supabase'de her cihaz tek satırsa ve gruplama (count) yapmak istersen:
+      // (Şimdilik Laravel'den gelen yapıya uygun bir 'total' alanı olduğunu varsayıyoruz)
       setInventory(data);
+
     } catch (error) {
-      Alert.alert('Hata', 'Depo stokları yüklenemedi.');
+      console.error("Stok Hatası:", error);
+      Alert.alert('Hata', 'Depo stokları yüklenemedi: ' + error.message);
     } finally {
       setLoading(false);
     }

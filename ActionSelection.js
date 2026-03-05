@@ -4,76 +4,99 @@ import {
   FlatList, ActivityIndicator, SafeAreaView, Alert 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from './src/context/LanguageContext'; 
+// Database.js'den dile göre çeken fonksiyonu alıyoruz
+import { getLocalCategoriesByLang } from './Database'; 
 
 export default function ActionSelection({ customer, dealer, onBack, onSelectCategory }) {
+  const { t, selectedLang } = useLanguage(); 
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Dil her değiştiğinde listeyi SQLite'dan tekrar çeker
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    console.log("🌍 Ekran dili değişti, yeni dil:", selectedLang);
+    loadCategories();
+  }, [selectedLang]);
 
-  const fetchCategories = async () => {
+  const loadCategories = async () => {
     try {
-      // MVP: Şimdilik API'den çekiyoruz, bir sonraki adımda SQLite entegrasyonu yapacağız
-      const response = await fetch('https://isletmem.online/asset/api/action-categories');
-      const data = await response.json();
-      setCategories(data);
+      setLoading(true);
+      // Database.js içindeki filtreli fonksiyonu çağırıyoruz
+      const result = await getLocalCategoriesByLang(selectedLang);
+      setCategories(result);
     } catch (error) {
-      Alert.alert('Hata', 'Kategoriler yüklenemedi.');
+      console.error("Kategoriler yüklenemedi:", error);
+      Alert.alert(t('common.error') || "Hata", t('action.error_loading') || "Kategoriler yüklenemedi.");
     } finally {
       setLoading(false);
     }
   };
 
   const renderCategory = ({ item }) => {
-    // MVP: Sadece ID'si 1 olan (Soğutucu İşlemleri) aktif, Verifikasyon aktif, diğerleri "Yakında"
-    const isActive = item.id === 1 || item.id === 5; 
+    const categoryDisplayName = item.name || ""; 
+    const isActive = Number(item.is_active) === 1; 
 
     return (
       <TouchableOpacity 
         style={[styles.actionItem, !isActive && styles.inactiveItem]} 
-        onPress={() => isActive ? onSelectCategory(item) : Alert.alert(item.name, "Bu akış yakında aktif edilecektir.")}
+        onPress={() => {
+          if (isActive) {
+            onSelectCategory(item);
+          } else {
+            Alert.alert(categoryDisplayName, t('dashboard.soon') || "Bu işlem yakında aktif edilecektir.");
+          }
+        }}
       >
         <View style={styles.actionLeft}>
           <View style={[styles.iconBox, isActive ? styles.activeIconBox : styles.inactiveIconBox]}>
-            <Ionicons name="clipboard-outline" size={24} color={isActive ? "#004a99" : "#999"} />
+            <Ionicons 
+              name="clipboard-outline" 
+              size={24} 
+              color={isActive ? "#004a99" : "#9ca3af"} 
+            />
           </View>
           <View>
             <Text style={[styles.categoryName, !isActive && styles.inactiveText]}>
-              {item.name.toUpperCase()}
+              {categoryDisplayName.toUpperCase()}
             </Text>
-            {!isActive && <Text style={styles.soonText}>YAKINDA</Text>}
+            {!isActive && (
+              <Text style={styles.soonText}>
+                {t('dashboard.soon_label') || "YAKINDA"}
+              </Text>
+            )}
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={isActive ? "#004a99" : "#ccc"} />
+        <Ionicons 
+          name="chevron-forward" 
+          size={20} 
+          color={isActive ? "#004a99" : "#ccc"} 
+        />
       </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>İşlem Türü Seçimi</Text>
+        <Text style={styles.headerTitle}>{t('action.title') || "İşlem Türü Seçimi"}</Text>
       </View>
 
-      {/* Müşteri Bilgi Paneli */}
       <View style={styles.customerInfoBox}>
         <View style={styles.infoBadgeRow}>
           <View style={styles.dealerBadge}>
             <Text style={styles.dealerBadgeText}>{dealer}</Text>
           </View>
-          <Text style={styles.sapCodeText}>SAP: {customer.customer_code}</Text>
+          <Text style={styles.sapCodeText}>SAP: {customer?.customer_code}</Text>
         </View>
-        <Text style={styles.customerNameText}>{customer.name}</Text>
+        <Text style={styles.customerNameText}>{customer?.name}</Text>
       </View>
 
       <View style={styles.listTitleContainer}>
-        <Text style={styles.listTitle}>KATEGORİ SEÇİNİZ</Text>
+        <Text style={styles.listTitle}>{t('action.select_category') || "KATEGORİ SEÇİNİZ"}</Text>
       </View>
 
       {loading ? (
@@ -90,38 +113,28 @@ export default function ActionSelection({ customer, dealer, onBack, onSelectCate
   );
 }
 
+// Styles aynı kalabilir...
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'white' },
-  header: { backgroundColor: '#004a99', height: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 },
+  header: { backgroundColor: '#004a99', height: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10 },
   backButton: { padding: 5 },
-  headerTitle: { color: 'white', fontSize: 18, fontWeight: 'bold', marginLeft: 10 },
-  
+  headerTitle: { color: 'white', fontSize: 17, fontWeight: 'bold', marginLeft: 10 },
   customerInfoBox: { backgroundColor: '#f3f4f6', padding: 15, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   infoBadgeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
   dealerBadge: { backgroundColor: '#e5e7eb', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginRight: 8 },
   dealerBadgeText: { fontSize: 10, fontWeight: 'bold', color: '#4b5563' },
-  sapCodeText: { fontSize: 11, color: '#6b7280', fontFamily: 'monospace' },
-  customerNameText: { fontSize: 15, fontWeight: 'bold', color: '#1e3a8a', textTransform: 'uppercase' },
-
-  listTitleContainer: { paddingHorizontal: 20, paddingTop: 20, pb: 10 },
-  listTitle: { fontSize: 11, fontWeight: 'bold', color: '#9ca3af', letterSpacing: 1.5 },
-  
-  listContent: { paddingHorizontal: 0 },
-  actionItem: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 20, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#f3f4f6' 
-  },
+  sapCodeText: { fontSize: 11, color: '#6b7280' },
+  customerNameText: { fontSize: 15, fontWeight: 'bold', color: '#1e3a8a' },
+  listTitleContainer: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
+  listTitle: { fontSize: 11, fontWeight: 'bold', color: '#9ca3af', letterSpacing: 1.2 },
+  actionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 18, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   actionLeft: { flexDirection: 'row', alignItems: 'center' },
   iconBox: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
   activeIconBox: { backgroundColor: '#eff6ff' },
   inactiveIconBox: { backgroundColor: '#f9fafb' },
-  categoryName: { fontSize: 16, fontWeight: 'bold', color: '#111827' },
-  inactiveItem: { backgroundColor: '#fafafa' },
+  categoryName: { fontSize: 15, fontWeight: 'bold', color: '#111827' },
+  inactiveItem: { backgroundColor: '#fcfcfc' },
   inactiveText: { color: '#9ca3af' },
   soonText: { fontSize: 10, color: '#9ca3af', fontWeight: 'bold', marginTop: 2 },
-  centerMsg: { flex: 1, justifyContent: 'center', alignItems: 'center' }
+  listContent: { paddingBottom: 20 }
 });

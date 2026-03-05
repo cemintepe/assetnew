@@ -4,111 +4,146 @@ import {
   FlatList, ActivityIndicator, Alert, SafeAreaView, Modal 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { initDB, saveDealersToLocal, saveCustomersToLocal, getLocalDealers, getLocalCustomersByDealer } from './Database';
 
-export default function StDashboard({ user, onLogout, onSelectCustomer }) {
+// MİKRÖ MİMARİ BAĞLANTILARI
+import { supabase } from './supabase';
+import { useAuth } from './src/context/AuthContext';
+import { useLanguage } from './src/context/LanguageContext';
+import { 
+  initDB, 
+  saveDealersToLocal, 
+  saveCustomersToLocal, 
+  saveCategoriesToLocal, 
+  saveJobTypesToLocal,
+  getLocalDealers, 
+  getLocalCustomersByDealer 
+} from './Database';
+
+export default function StDashboard({ onLogout, onSelectCustomer }) {
+  // CONTEXTS
+  const { user } = useAuth(); 
+  const { t, selectedLang } = useLanguage(); 
+
+  // STATES
   const [dealers, setDealers] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [selectedDealer, setSelectedDealer] = useState(null);
-  const [loadingDealers, setLoadingDealers] = useState(false); // Başlangıçta false yaptık
+  const [loadingDealers, setLoadingDealers] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDealerModal, setShowDealerModal] = useState(false);
 
+  // TARİH FORMATI
   const getCurrentDate = () => {
     const date = new Date();
-    const day = date.toLocaleDateString('tr-TR', { weekday: 'short' });
-    const month = date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    const locale = selectedLang === 'TR' ? 'tr-TR' : 'en-US';
+    const day = date.toLocaleDateString(locale, { weekday: 'short' });
+    const month = date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
     return { day, month };
   };
 
   const { day, month } = getCurrentDate(); 
 
-  // Otomatik yükleme kapalı, sadece butonla tetiklenecek
-useEffect(() => {
-  const loadInitialData = async () => {
-    // 1. Önce DB'yi hazırla (Tablo yoksa oluşturur)
-    await initDB();
-    
-    // 2. Login olan bu kullanıcıya ait yerel veriyi kontrol et
-    const localData = await getLocalDealers(user.username);
-    
-    if (localData && localData.length > 0) {
-      // Veri varsa state'e doldur, kullanıcı direkt listeyi görsün
-      setDealers(localData);
-      console.log(`📂 ${user.username} için yerel veriler yüklendi: ${localData.length} adet.`);
-    } else {
-      // Veri yoksa sadece log bas, kullanıcı SYNC butonuna basacaktır
-      console.log(`ℹ️ ${user.username} için henüz yerel veri yok.`);
+  // İLK YÜKLEME: SQLite Kontrolü
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await initDB();
+      const activeUserCode = user?.user_code?.toUpperCase();
+      const localData = await getLocalDealers(activeUserCode);
+      
+      if (localData && localData.length > 0) {
+        setDealers(localData);
+        console.log(`📦 SQLite Yüklendi: ${activeUserCode} için veriler hazır.`);
+      }
+    };
+
+    if (user?.user_code) loadInitialData();
+  }, [user?.user_code]);
+
+  // SUPABASE SYNC (Verileri Buluttan İndir)
+  const fetchDealers = async () => {
+    setLoadingDealers(true);
+    try {
+      const activeUserCode = user?.user_code?.toUpperCase(); 
+      console.log(`🔎 SYNC Başlatılıyor... Kullanıcı: [${activeUserCode}]`);
+
+      // 1. Bayileri Çek
+      const { data: dealerData, error: dError } = await supabase
+        .from('dealers')
+        .select('*')
+        .ilike('st_usernames', `%${activeUserCode}%`);
+
+      if (dError) throw dError;
+      await saveDealersToLocal(dealerData, activeUserCode);
+      
+      // 2. Müşterileri Çek
+      console.log("📡 Müşteriler çekiliyor...");
+      const { data: allCustomers, error: cError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('st_username', activeUserCode);
+
+      if (cError) throw cError;
+      await saveCustomersToLocal(allCustomers, activeUserCode);
+
+      // 3. Kategorileri Çek (YENİ)
+      console.log("📡 Kategoriler çekiliyor...");
+      const { data: catData, error: catError } = await supabase
+        .from('action_categories')
+        .select('*');
+
+      // 4. İŞ TİPLERİNİ ÇEK VE KAYDET (YENİ EKLENEN)
+      console.log("📡 Job Types çekiliyor...");
+      const { data: jobData, error: jobError } = await supabase
+        .from('job_types')
+        .select('*');
+
+      if (!jobError && jobData) {
+        await saveJobTypesToLocal(jobData); // require satırına gerek kalmadı
+        console.log("✅ Job Types senkronize edildi.");
+      }
+
+      if (!catError && catData) {
+        // Sadece ID'leri logla
+        console.log("✅ Kategoriler indirildi. ID Listesi:", catData.map(c => c.id));
+        
+        await saveCategoriesToLocal(catData);
+      }
+
+      // UI Güncelle
+      const localDealers = await getLocalDealers(activeUserCode);
+      setDealers(localDealers);
+
+      Alert.alert(t('common.success'), `${allCustomers.length} ${t('dashboard.sync_complete')}`);
+      
+    } catch (error) {
+      console.error("❌ SYNC Hatası:", error);
+      Alert.alert('Hata', 'Senkronizasyon başarısız.');
+    } finally {
+      setLoadingDealers(false);
     }
   };
 
-  loadInitialData();
-}, [user.username]); // Kullanıcı değişirse (logout/login) tekrar kontrol et
-
-const fetchDealers = async () => {
-  setLoadingDealers(true);
-  try {
-    console.log(`🚀 SYNC Başlatıldı: Kullanıcı -> ${user.username}`);
-
-    // 1. Bayileri Çek
-    const dealerRes = await fetch(`https://isletmem.online/asset/api/my-dealers?username=${user.username}`);
-    const dealerData = await dealerRes.json();
-    await saveDealersToLocal(dealerData, user.username);
-    
-    // 2. Müşterileri Çek (Döngü ile)
-    let allCustomers = [];
-    console.log("📦 Bayi bazlı müşteri toplama işlemi başladı...");
-
-    for (const dealer of dealerData) {
-      const custRes = await fetch(`https://isletmem.online/asset/api/my-customers?username=${user.username}&dealer_code=${dealer.dealer_code}`);
-      const custData = await custRes.json();
-      
-      // Log: Hangi bayiden kaç müşteri geldi görelim
-      console.log(`🔹 Bayi: ${dealer.dealer_code} | Gelen Müşteri: ${custData.length}`);
-      
-      allCustomers = [...allCustomers, ...custData];
-    }
-
-    // 3. SQLite'a Topluca Kaydet
-    await saveCustomersToLocal(allCustomers, user.username);
-    
-    // Log: Sonuç özeti
-    console.log("🏁 Senkronizasyon Başarıyla Tamamlandı.");
-    console.log(`📊 Toplam Bayi: ${dealerData.length} | Toplam Müşteri: ${allCustomers.length}`);
-
-    // UI Güncelle
-    const localDealers = await getLocalDealers(user.username);
-    setDealers(localDealers);
-
-    Alert.alert('Senkronizasyon Başarılı', `${allCustomers.length} müşteri cihazınıza indirildi.`);
-    
-  } catch (error) {
-    console.log("❌ SYNC Hatası:", error);
-    Alert.alert('Hata', 'Veriler çekilirken bir sorun oluştu.');
-  } finally {
-    setLoadingDealers(false);
-  }
-};
-
+  // BAYİYE GÖRE MÜŞTERİ LİSTELE
   const loadCustomersByDealer = async (dealer) => {
     setSelectedDealer(dealer);
     setShowDealerModal(false);
     setLoadingCustomers(true);
     try {
-      
-      const data = await getLocalCustomersByDealer(dealer.dealer_code, user.username);
+      const activeUserCode = user?.user_code?.toUpperCase();
+      const data = await getLocalCustomersByDealer(dealer.dealer_code, activeUserCode);
       setCustomers(data);
       setFilteredCustomers(data);
-
     } catch (error) {
-      Alert.alert('Hata', 'Müşteri listesi alınamadı');
+      console.error("Müşteri listeleme hatası:", error);
+      Alert.alert(t('auth.error'), t('dashboard.list_error'));
     } finally {
       setLoadingCustomers(false);
     }
   };
 
+  // ARAMA MANTIĞI
   const handleSearch = (text) => {
     setSearchQuery(text);
     const filtered = customers.filter(item => 
@@ -127,22 +162,20 @@ const fetchDealers = async () => {
         <Text style={styles.sapCode}>SAP: {item.customer_code}</Text>
         <View style={styles.nameRow}>
           <Text style={styles.customerName}>{item.name.toUpperCase()}</Text>
-          <Ionicons name="home-outline" size={14} color="#004a99" style={{ marginLeft: 6 }} />
+          <Ionicons name="business-outline" size={14} color="#004a99" style={{ marginLeft: 6 }} />
         </View>
-        <Text style={styles.addressText}>{item.address || 'İLGİLİ KİŞİ BELİRTİLMEMİŞ'}</Text>
+        <Text style={styles.addressText}>{item.address || t('dashboard.no_address')}</Text>
       </View>
-      <Ionicons name="ellipsis-vertical" size={20} color="#ccc" />
+      <Ionicons name="chevron-forward" size={20} color="#ccc" />
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER - Sadeleşti */}
       <View style={styles.mayaHeader}>
         <View style={styles.headerTitleBadge}>
-          <Text style={styles.headerTitleText}>{user.username}</Text>
+          <Text style={styles.headerTitleText}>{user?.full_name || user?.user_code}</Text>
         </View>
-        
         <View style={styles.headerRight}>
           <View style={styles.dateBadge}>
             <Text style={styles.dateDayName}>{day}</Text>
@@ -154,33 +187,30 @@ const fetchDealers = async () => {
         </View>
       </View>
 
-      {/* Arama Barı */}
       <View style={styles.searchBar}>
         <Ionicons name="search" size={20} color="#666" style={{ marginLeft: 15 }} />
         <TextInput 
           style={styles.searchInput}
-          placeholder="Müşteri bul"
+          placeholder={t('dashboard.find_customer')}
           placeholderTextColor="#666"
           value={searchQuery}
           onChangeText={handleSearch}
         />
       </View>
 
-      {/* Bayi Seçici */}
       <View style={styles.dealerSection}>
         <TouchableOpacity style={styles.customSelect} onPress={() => setShowDealerModal(true)}>
           <Text style={[styles.selectText, !selectedDealer && { color: '#999' }]}>
-            {selectedDealer ? `${selectedDealer.dealer_code} - ${selectedDealer.name}` : "Bayi seçmek için dokunun"}
+            {selectedDealer ? `${selectedDealer.dealer_code} - ${selectedDealer.name}` : t('dashboard.select_dealer')}
           </Text>
           <Ionicons name="chevron-down" size={20} color="#004a99" />
         </TouchableOpacity>
       </View>
 
-      {/* Liste Alanı ve Ortadaki SYNC Butonu */}
       {loadingCustomers ? (
         <View style={styles.centerMsg}>
           <ActivityIndicator size="large" color="#004a99" />
-          <Text style={styles.italicMsg}>Müşteriler çekiliyor...</Text>
+          <Text style={styles.italicMsg}>{t('common.loading')}</Text>
         </View>
       ) : filteredCustomers.length > 0 ? (
         <FlatList
@@ -193,22 +223,16 @@ const fetchDealers = async () => {
         <View style={styles.centerMsg}>
           <Ionicons name="cloud-offline-outline" size={60} color="#eee" />
           <Text style={styles.italicMsg}>
-            {selectedDealer ? 'Bu bayiye ait müşteri bulunamadı.' : 'Henüz veri senkronize edilmedi.'}
+            {selectedDealer ? t('dashboard.no_customer_found') : t('dashboard.no_sync_yet')}
           </Text>
-
-          {/* ORTADAKİ SYNC BUTONU */}
           {!selectedDealer && (
-            <TouchableOpacity 
-              onPress={fetchDealers} 
-              disabled={loadingDealers} 
-              style={styles.centerSyncBtn}
-            >
+            <TouchableOpacity onPress={fetchDealers} disabled={loadingDealers} style={styles.centerSyncBtn}>
               {loadingDealers ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
                 <View style={styles.syncContent}>
                   <Ionicons name="cloud-download" size={20} color="white" />
-                  <Text style={styles.syncText}>VERİLERİ EŞİTLE (SYNC)</Text>
+                  <Text style={styles.syncText}>{t('dashboard.sync_data')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -216,12 +240,11 @@ const fetchDealers = async () => {
         </View>
       )}
 
-      {/* Seçim Modalı */}
       <Modal visible={showDealerModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Bayi Seçin</Text>
+              <Text style={styles.modalTitle}>{t('dashboard.select_dealer')}</Text>
               <TouchableOpacity onPress={() => setShowDealerModal(false)}>
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
@@ -239,22 +262,17 @@ const fetchDealers = async () => {
               )}
               ListEmptyComponent={
                 <Text style={{textAlign: 'center', color: '#999', marginTop: 20}}>
-                  Önce "SYNC" butonu ile bayileri indirin.
+                  {t('dashboard.sync_first')}
                 </Text>
               }
             />
-            {/* MODAL EN ALTI: SYNC BUTONU */}
-            <TouchableOpacity 
-              style={styles.modalSyncBtn} 
-              onPress={fetchDealers}
-              disabled={loadingDealers}
-            >
+            <TouchableOpacity style={styles.modalSyncBtn} onPress={fetchDealers} disabled={loadingDealers}>
               {loadingDealers ? (
                 <ActivityIndicator size="small" color="#004a99" />
               ) : (
                 <View style={styles.syncContent}>
                   <Ionicons name="refresh-circle" size={22} color="#004a99" />
-                  <Text style={styles.modalSyncText}>GÜNCELLE (SYNC)</Text>
+                  <Text style={styles.modalSyncText}>{t('dashboard.update_sync')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -267,7 +285,7 @@ const fetchDealers = async () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'white' },
-  mayaHeader: { backgroundColor: '#004a99', height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15 },
+  mayaHeader: { backgroundColor: '#004a99', height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15 },
   headerTitleBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   headerTitleText: { color: 'white', fontSize: 14, fontWeight: '600' },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
@@ -276,12 +294,12 @@ const styles = StyleSheet.create({
   dateText: { color: 'white', fontSize: 12, fontWeight: '600' },
   logoutBtn: { padding: 5 },
   searchBar: { backgroundColor: '#f2f2f2', height: 50, borderBottomWidth: 1, borderBottomColor: '#ddd', flexDirection: 'row', alignItems: 'center' },
-  searchInput: { flex: 1, height: '100%', paddingHorizontal: 10, fontSize: 16, color: '#000' },
+  searchInput: { flex: 1, height: '100%', paddingHorizontal: 10, fontSize: 15, color: '#000' },
   dealerSection: { padding: 12, backgroundColor: '#f9fafb' },
   customSelect: { backgroundColor: 'white', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', elevation: 2 },
   selectText: { fontSize: 14, fontWeight: '700', color: '#333' },
   list: { flex: 1 },
-  customerItem: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  customerItem: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   customerLeft: { flex: 1 },
   sapCode: { fontSize: 11, color: '#999', fontWeight: 'bold', marginBottom: 2 },
   nameRow: { flexDirection: 'row', alignItems: 'center' },
@@ -289,7 +307,7 @@ const styles = StyleSheet.create({
   addressText: { fontSize: 12, color: '#999', marginTop: 4, textTransform: 'uppercase' },
   centerMsg: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   italicMsg: { color: '#bbb', fontStyle: 'italic', fontSize: 14, marginTop: 10, textAlign: 'center' },
-  centerSyncBtn: { marginTop: 20, backgroundColor: '#004a99', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 25, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2 },
+  centerSyncBtn: { marginTop: 20, backgroundColor: '#004a99', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 25 },
   syncContent: { flexDirection: 'row', alignItems: 'center' },
   syncText: { color: 'white', fontWeight: 'bold', fontSize: 14, marginLeft: 8 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
@@ -298,6 +316,6 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#004a99' },
   dealerOption: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#eee', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dealerOptionText: { fontSize: 15, color: '#333' },
-  modalSyncBtn: { marginTop: 10, paddingVertical: 15, borderTopWidth: 1, borderTopColor: '#eee', alignItems: 'center', justifyContent: 'center',},
-modalSyncText: { fontSize: 14, fontWeight: 'bold', color: '#004a99', marginLeft: 8}
+  modalSyncBtn: { marginTop: 10, paddingVertical: 15, borderTopWidth: 1, borderTopColor: '#eee', alignItems: 'center' },
+  modalSyncText: { fontSize: 14, fontWeight: 'bold', color: '#004a99', marginLeft: 8}
 });

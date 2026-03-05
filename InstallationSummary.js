@@ -4,39 +4,49 @@ import {
   TextInput, Alert, ActivityIndicator, ScrollView 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from './supabase';
 
 export default function InstallationSummary({ customer, category, jobType, inventory, user, onBack, onComplete }) {
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [successData, setSuccessData] = useState(null);
 
-  const submitRequest = async () => {
+const submitRequest = async () => {
     setLoading(true);
+    
+    // 1. Veri Paketini Hazırla
     const payload = {
       customer_code: customer.customer_code,
-      dealer_code: customer.dealer_code, // Prop'tan gelen bayi kodu
+      dealer_code: customer.dealer_code,
       type_code: inventory.type_code,
       material_description: inventory.material_description,
       note: note,
-      username: user.username
+      username: user.username,
+      status: 'PENDING', // Varsayılan durum
+      created_at: new Date().toISOString()
     };
 
     try {
-      const response = await fetch('https://isletmem.online/asset/api/create-install-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      // 2. Supabase Insert İşlemi
+      const { data, error } = await supabase
+        .from('install_requests')
+        .insert([payload])
+        .select(); // Kaydedilen veriyi geri döndür (ID için)
 
-      const result = await response.json();
-
-      if (result.success) {
-        setSuccessData(result.request_no);
-      } else {
-        Alert.alert('Hata', result.message || 'Talep oluşturulamadı.');
+      if (error) {
+        throw error;
       }
+
+      // 3. Başarılı ise Kayıt Numarasını Göster
+      // Supabase otomatik ID oluşturduğu için data[0].id'yi alıyoruz
+      if (data && data.length > 0) {
+        // Eğer ID çok uzunsa (UUID) görsel olarak ilk 8 haneyi de gösterebilirsin
+        setSuccessData(data[0].id.toString().split('-')[0].toUpperCase());
+      }
+
     } catch (e) {
-      Alert.alert('Bağlantı Hatası', 'Sistemle iletişim kurulamadı.');
+      console.error("Supabase Hatası:", e);
+      Alert.alert('Hata', 'Talep oluşturulamadı: ' + (e.message || 'Bağlantı sorunu'));
     } finally {
       setLoading(false);
     }

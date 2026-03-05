@@ -14,14 +14,22 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.AssetMobil"
+      "bundleIdentifier": "com.anonymous.AssetMobil",
+      "runtimeVersion": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.CAMERA"
+      ],
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,6 +37,14 @@
     "plugins": [
       "expo-sqlite",
       "expo-barcode-scanner"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "44580436-9bb9-4225-8850-9a152d7f6814"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/44580436-9bb9-4225-8850-9a152d7f6814"
+    }
   }
 }
