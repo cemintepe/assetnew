@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AssetMobil",
-    "slug": "AssetMobil",
+    "name": "Asset Project",
+    "slug": "https://expo.dev/accounts/cemintepe/projects/AssetMobiletMobil",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,7 +24,6 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "android.permission.CAMERA",
         "android.permission.CAMERA"
       ],
       "runtimeVersion": {
@@ -45,6 +44,7 @@
     },
     "updates": {
       "url": "https://u.expo.dev/44580436-9bb9-4225-8850-9a152d7f6814"
-    }
+    },
+    "owner": "cemintepe"
   }
 }
