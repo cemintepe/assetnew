@@ -86,57 +86,61 @@ const fetchInventory = async () => {
   };
 
   // 2. ADIM: Barkod Okutma ve Kayıt
-  const handleBarCodeScanned = async ({ data }) => {
-    if (isProcessing.current) return;
-    isProcessing.current = true;
-    
-    const scannedBarcode = String(data).trim().toUpperCase();
-    setScannerVisible(false);
+const handleBarCodeScanned = async ({ data }) => {
+  if (isProcessing.current) return;
+  isProcessing.current = true;
+  
+  const scannedBarcode = String(data).trim().toUpperCase();
+  setScannerVisible(false);
 
-    // Envanterde var mı kontrolü
-    const item = inventory.find(i => String(i.barcode).toUpperCase() === scannedBarcode);
-    
-    if (!item) {
-      Alert.alert(
-        t('common.error'), 
-        `${t('inventory.barcode')}: ${scannedBarcode}\n\n${t('verification.not_belonging')}`, 
-        [{ text: t('common.ok'), onPress: () => { isProcessing.current = false; } }],
-        { cancelable: false }
-      );
-      return;
-    }
+  // 1. ÖNCE LOKALDE KONTROL ET
+  const itemIndex = inventory.findIndex(i => String(i.barcode).toUpperCase() === scannedBarcode);
+  
+  if (itemIndex === -1) {
+    Alert.alert(t('common.error'), `${t('inventory.barcode')}: ${scannedBarcode}\n\n${t('verification.not_belonging')}`, 
+      [{ text: t('common.ok'), onPress: () => { isProcessing.current = false; } }]);
+    return;
+  }
 
-    try {
-      const now = new Date();
-      const currentPeriod = `${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
-
-      // Supabase'e kayıt at (id otomatik artar)
-      const { error } = await supabase
-        .from('equipment_verifications')
-        .insert([{
-          barcode_no: scannedBarcode,
-          customer_code: parseInt(customer.customer_code),
-          user_code: String(user?.user_code || 'HATA').toUpperCase(),
-          period: currentPeriod,
-          scanned_at: new Date().toISOString()
-        }]);
-
-      if (error) throw error;
-      
-      // Listeyi yenile ve başarı mesajı göster
-      await fetchInventory();
-      
-      Alert.alert(
-        t('common.success'), 
-        t('verification.verified_msg'),
-        [{ text: t('common.ok'), onPress: () => { isProcessing.current = false; } }]
-      );
-    } catch (error) {
-      console.error("Supabase Insert Error:", error);
-      Alert.alert(t('common.error'), "Database Insert Error");
-      isProcessing.current = false;
-    }
+  // --- HIZLANDIRMA SİHİRLİ DOKUNUŞ BURADA ---
+  // 2. OPTIMISTIC UPDATE: Sunucudan cevap gelmeden arayüzü güncelle
+  const newInventory = [...inventory];
+  newInventory[itemIndex] = { 
+    ...newInventory[itemIndex], 
+    is_verified: true, // Hemen yeşil yap
+    is_missing: false  // Kayıp yazısını hemen kaldır
   };
+  setInventory(newInventory); 
+  // -----------------------------------------
+
+  try {
+    const now = new Date();
+    const currentPeriod = `${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+
+    // 3. ARKA PLANDA KAYDI AT (Kullanıcı burayı beklemiyor)
+    const { error } = await supabase
+      .from('equipment_verifications')
+      .insert([{
+        barcode_no: scannedBarcode,
+        customer_code: parseInt(customer.customer_code),
+        user_code: String(user?.user_code || 'HATA').toUpperCase(),
+        period: currentPeriod,
+        scanned_at: new Date().toISOString()
+      }]);
+
+    if (error) throw error;
+    
+    // Her şey yolunda, işlem kilidini aç
+    isProcessing.current = false;
+
+  } catch (error) {
+    console.error("Kayıt Hatası:", error);
+    // Hata olursa lokal değişikliği geri al (Opsiyonel ama güvenli)
+    fetchInventory(); 
+    Alert.alert(t('common.error'), "Database Insert Error");
+    isProcessing.current = false;
+  } 
+};
 
   const handleOpenScanner = async () => {
     if (!permission?.granted) {
