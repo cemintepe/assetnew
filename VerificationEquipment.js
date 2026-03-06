@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera'; 
 import { useLanguage } from './src/context/LanguageContext';
 import { useAuth } from './src/context/AuthContext';
+import { supabase } from './supabase'; // Supabase istemcinizin yolu
 
 export default function VerificationEquipment({ customer, dealer, onBack }) {
   const { t } = useLanguage();
@@ -16,78 +17,123 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
   const [scannerVisible, setScannerVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   
-  // Kilitleme mekanizması
+  // Kilitleme mekanizması: Birden fazla alert ve kayıt oluşmasını engeller
   const isProcessing = useRef(false);
 
   useEffect(() => {
     fetchInventory();
   }, []);
 
-  const fetchInventory = async () => {
+  // 1. ADIM: Envanteri ve Doğrulama Durumunu Çekme
+const fetchInventory = async () => {
     try {
       setLoading(true);
-      // Customer Code uppercase yapılarak API'ye gönderiliyor
-      const cCode = String(customer?.customer_code || "").toUpperCase();
-      const response = await fetch(`https://isletmem.online/asset/api/verification/inventory/${cCode}`);
-      const data = await response.json();
-      if (data.status === 'success') {
-        setInventory(data.inventory);
-      }
+      const cCode = customer?.customer_code;
+      
+      const now = new Date();
+      // Bu Ay: 03.2026
+      const currentPeriod = `${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+      
+      // Geçen Ay: 02.2026 (Ocak ise bir önceki yıla geçer)
+      const lastMonthDate = new Date();
+      lastMonthDate.setMonth(now.getMonth() - 1);
+      const lastPeriod = `${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}.${lastMonthDate.getFullYear()}`;
+
+      // 1. Ana Envanter
+      const { data: eqData, error: eqError } = await supabase
+        .from('equipments')
+        .select('*')
+        .eq('current_location_code', cCode);
+
+      if (eqError) throw eqError;
+
+      // 2. Doğrulamalar (Tüm kayıtları çekiyoruz ki geçmişe bakabilelim)
+      const { data: verData, error: verError } = await supabase
+        .from('equipment_verifications')
+        .select('barcode_no, period')
+        .eq('customer_code', cCode);
+
+      if (verError) throw verError;
+
+      const mergedData = eqData.map(item => {
+        const itemBarcodes = verData.filter(v => String(v.barcode_no) === String(item.barcode));
+        
+        // Bu ay okunmuş mu?
+        const isVerifiedThisPeriod = itemBarcodes.some(v => v.period === currentPeriod);
+        
+        // Geçen ay okunmuş mu?
+        const isVerifiedLastPeriod = itemBarcodes.some(v => v.period === lastPeriod);
+
+        // KAYIP ŞARTı: Bu ay okunmamış VE geçen ay da okunmamışsa
+        const isMissing = !isVerifiedThisPeriod && !isVerifiedLastPeriod;
+
+        return {
+          ...item,
+          is_verified: isVerifiedThisPeriod,
+          is_missing: isMissing, // Yeni flag
+          description: item.material_description 
+        };
+      });
+
+      setInventory(mergedData);
     } catch (error) {
+      console.error("Supabase Fetch Error:", error);
       Alert.alert(t('common.error'), t('inventory.no_stock'));
+      setLoading(false);
     } finally {
       setLoading(false);
     }
   };
 
+  // 2. ADIM: Barkod Okutma ve Kayıt
   const handleBarCodeScanned = async ({ data }) => {
     if (isProcessing.current) return;
     isProcessing.current = true;
     
-    // Okunan barkodu hemen normalize et
     const scannedBarcode = String(data).trim().toUpperCase();
-    console.log("🔍 Barkod Yakalandı:", scannedBarcode);
-    
     setScannerVisible(false);
 
-    // Envanter kontrolü (Uppercase karşılaştırma ile)
+    // Envanterde var mı kontrolü
     const item = inventory.find(i => String(i.barcode).toUpperCase() === scannedBarcode);
     
     if (!item) {
       Alert.alert(
         t('common.error'), 
         `${t('inventory.barcode')}: ${scannedBarcode}\n\n${t('verification.not_belonging')}`, 
-        [{ 
-          text: t('common.ok'), 
-          onPress: () => { isProcessing.current = false; } 
-        }],
+        [{ text: t('common.ok'), onPress: () => { isProcessing.current = false; } }],
         { cancelable: false }
       );
       return;
     }
 
-    // Başarılı senaryo: API'ye gönder
     try {
-      const response = await fetch('https://isletmem.online/asset/api/verification/store', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const now = new Date();
+      const currentPeriod = `${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+
+      // Supabase'e kayıt at (id otomatik artar)
+      const { error } = await supabase
+        .from('equipment_verifications')
+        .insert([{
           barcode_no: scannedBarcode,
-          customer_code: String(customer.customer_code).toUpperCase(),
-          user_code: String(user?.user_code || 'ST_HATA').toUpperCase()
-        })
-      });
+          customer_code: parseInt(customer.customer_code),
+          user_code: String(user?.user_code || 'HATA').toUpperCase(),
+          period: currentPeriod,
+          scanned_at: new Date().toISOString()
+        }]);
+
+      if (error) throw error;
       
-      const resData = await response.json();
-      if (resData.status === 'success') {
-        await fetchInventory();
-        Alert.alert(t('common.success'), t('verification.verified_msg'),[{ text: t('common.ok'), onPress: () => { isProcessing.current = false; } }]);
-      } else {
-        isProcessing.current = false;
-      }
+      // Listeyi yenile ve başarı mesajı göster
+      await fetchInventory();
+      
+      Alert.alert(
+        t('common.success'), 
+        t('verification.verified_msg'),
+        [{ text: t('common.ok'), onPress: () => { isProcessing.current = false; } }]
+      );
     } catch (error) {
-      Alert.alert(t('common.error'), "Server Error");
-    } finally {
+      console.error("Supabase Insert Error:", error);
+      Alert.alert(t('common.error'), "Database Insert Error");
       isProcessing.current = false;
     }
   };
@@ -104,17 +150,25 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
     setScannerVisible(true);
   };
 
-  const renderEquipment = ({ item }) => (
+const renderEquipment = ({ item }) => (
     <View style={[styles.equipmentCard, item.is_verified && styles.verifiedCard]}>
       <View style={styles.cardInfo}>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.barcodeText}>{item.barcode}</Text>
-          <View style={styles.materialBadge}>
-            <Text style={styles.materialText}>{item.material_code}</Text>
+          <View style={{flexDirection: 'row', gap: 5}}>
+            <View style={styles.materialBadge}>
+              <Text style={styles.materialText}>{item.material_code}</Text>
+            </View>
+            
+            {/* KAYIP BADGE - Sadece is_missing true ise ve bu ay doğrulanmamışsa görünüre */}
+            {item.is_missing && !item.is_verified && (
+              <View style={[styles.materialBadge, {backgroundColor: '#fee2e2'}]}>
+                <Text style={[styles.materialText, {color: '#ef4444', fontWeight: 'bold'}]}>{t('verification.missing')}</Text>
+              </View>
+            )}
           </View>
         </View>
-        <Text style={styles.descriptionText} numberOfLines={1}>{item.description}</Text>
-        <Text style={styles.eqNoText}>EQ No: {item.equipment_no}</Text>
+        <Text style={styles.descriptionText} numberOfLines={1}>{item.material_description}</Text>
       </View>
       <View style={styles.statusIcon}>
         {item.is_verified ? (
@@ -139,8 +193,10 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
 
       <View style={styles.customerInfoBox}>
         <View style={styles.infoBadgeRow}>
-          <View style={styles.dealerBadge}><Text style={styles.dealerBadgeText}>{dealer}</Text></View>
-          <Text style={styles.sapCodeText}> {customer.customer_code}</Text>
+          <View style={styles.dealerBadge}>
+            <Text style={styles.dealerBadgeText}>{dealer}</Text>
+          </View>
+          <Text style={styles.sapCodeText}>{customer.customer_code}</Text>
         </View>
         <Text style={styles.customerNameText}>{customer.name}</Text>
       </View>
@@ -150,7 +206,10 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
           <Ionicons name="barcode-outline" size={24} color="white" />
           <Text style={styles.scanButtonText}>{t('verification.scan_btn')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.blueFindButton} onPress={() => Alert.alert('BlueFind', 'Coming Soon')}>
+        <TouchableOpacity 
+          style={styles.blueFindButton} 
+          onPress={() => Alert.alert('BlueFind', 'Coming Soon')}
+        >
           <Ionicons name="bluetooth" size={24} color="#0284c7" />
           <Text style={styles.blueFindText}>BLUEFIND TARA</Text>
         </TouchableOpacity>
@@ -169,7 +228,7 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
         <FlatList
           data={inventory}
           renderItem={renderEquipment}
-          keyExtractor={(item, index) => item.barcode + index}
+          keyExtractor={(item, index) => (item.barcode || index).toString()}
           contentContainerStyle={styles.listContent}
         />
       )}

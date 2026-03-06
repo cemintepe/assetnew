@@ -1,3 +1,5 @@
+import { AuthSessionMissingError } from "@supabase/supabase-js";
+
 export default {
   auth: {
     username: "Cod Utilizator",
@@ -84,6 +86,7 @@ export default {
     not_belonging: "Acest echipament nu aparține acestei locații!",
     verified_msg: "Echipament verificat cu succes.",
     list_title: "INVENTAR PUNCT DE LUCRU",
-    camera_permission: "Permisiune cameră necesară"
+    camera_permission: "Permisiune cameră necesară",
+    missing: "LIPSEȘTE"
   }
 };

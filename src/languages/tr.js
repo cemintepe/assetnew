@@ -86,7 +86,8 @@ export default {
     not_belonging: "Bu ekipman bu noktaya ait değildir!",
     verified_msg: "Ekipman başarıyla doğrulandı.",
     list_title: "NOKTA ENVANTERİ",
-    camera_permission: "Kamera izni gerekli"
+    camera_permission: "Kamera izni gerekli",
+    missing: "KAYIP"
   }
 
 };

@@ -85,7 +85,8 @@ export default {
     not_belonging: "This equipment does not belong to this location!",
     verified_msg: "Equipment successfully verified.",
     list_title: "SITE INVENTORY",
-    camera_permission: "Camera permission required"
+    camera_permission: "Camera permission required",
+    missing: "MISSING"
   }
 
 };
