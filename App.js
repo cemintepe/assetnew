@@ -131,7 +131,7 @@ function MainApp() {
   }
 
   if (role === 'ST') {
-    if (selectedCategory?.id === 5) {
+    if (selectedCategory?.id === 5 || selectedCategory?.id === 10  || selectedCategory?.id === 15 || selectedCategory?.id === 20) {
       return <VerificationEquipment customer={selectedCustomer} dealer={selectedCustomer.dealer_code} onBack={() => setSelectedCategory(null)} />;
     }
 

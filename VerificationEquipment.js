@@ -140,7 +140,7 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
       <View style={styles.customerInfoBox}>
         <View style={styles.infoBadgeRow}>
           <View style={styles.dealerBadge}><Text style={styles.dealerBadgeText}>{dealer}</Text></View>
-          <Text style={styles.sapCodeText}>SAP: {customer.customer_code}</Text>
+          <Text style={styles.sapCodeText}> {customer.customer_code}</Text>
         </View>
         <Text style={styles.customerNameText}>{customer.name}</Text>
       </View>
