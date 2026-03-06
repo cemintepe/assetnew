@@ -5,6 +5,7 @@ import {
   Platform, Text 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // BAĞLANTILAR VE CONTEXT
 import { supabase } from './supabase';
@@ -20,6 +21,8 @@ import InventorySelection from './InventorySelection';
 import InstallationSummary from './InstallationSummary';
 import TechRequestDetail from './TechRequestDetail';
 import VerificationEquipment from './VerificationEquipment';
+import CustomerInventory from './CustomerInventory';
+import RepairSummary from './RepairSummary';
 
 // --- ANA GİRİŞ NOKTASI ---
 export default function App() {
@@ -63,12 +66,9 @@ function MainApp() {
 
     setLoading(true);
     try {
-      // Uppercase standardizasyonu
       const cleanUsername = username.trim().toUpperCase();
       const email = `${cleanUsername}@asset.net`;
       
-
-      // 1. Supabase Auth ile giriş yap
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -80,7 +80,6 @@ function MainApp() {
         return;
       }
 
-      // 2. Profil bilgilerini getir
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -92,7 +91,6 @@ function MainApp() {
         return;
       }
 
-      // Context güncelleme
       setUser(profileData);
       setRole(profileData.role);
 
@@ -117,6 +115,7 @@ function MainApp() {
 
   // --- RENDER LOGIC ---
   
+  // A. TEKNİSYEN ROLÜ
   if (role === 'T') {
     if (selectedRequest) {
       return (
@@ -130,34 +129,79 @@ function MainApp() {
     return <TeknisyenDashboard onLogout={handleLogout} onSelectRequest={setSelectedRequest} />;
   }
 
+  // B. ST ROLÜ
   if (role === 'ST') {
-    if (selectedCategory?.id === 5 || selectedCategory?.id === 10  || selectedCategory?.id === 15 || selectedCategory?.id === 20) {
+    
+    // 1. DOĞRULAMA (VERIFICATION) EKRANLARI (Özel Kategori ID'leri)
+    if (selectedCategory?.id === 5 || selectedCategory?.id === 10 || selectedCategory?.id === 15 || selectedCategory?.id === 20) {
       return <VerificationEquipment customer={selectedCustomer} dealer={selectedCustomer.dealer_code} onBack={() => setSelectedCategory(null)} />;
     }
 
-    if (selectedInventory) {
-      return (
-        <InstallationSummary
-          customer={selectedCustomer}
-          category={selectedCategory}
-          jobType={selectedJobType}
-          inventory={selectedInventory}
-          user={user}
-          onBack={() => setSelectedInventory(null)}
-          onComplete={() => {
-            setSelectedInventory(null);
-            setSelectedJobType(null);
-            setSelectedCategory(null);
-            setSelectedCustomer(null);
-          }}
-        />
-      );
-    }
-
+    // 2. İŞ TİPİ (JOB TYPE) SEÇİLDİYSE YÖNLENDİRME KARARI
     if (selectedJobType) {
-      return <InventorySelection customer={selectedCustomer} dealer={selectedCustomer.dealer_code} onBack={() => setSelectedJobType(null)} onSelectInventory={setSelectedInventory} />;
+      const jId = Number(selectedJobType.id);
+
+      // --- ARIZA AKIŞI: 2, 5, 8, 11 (Müşteri Envanterinden Seçim) ---
+      if ([2, 5, 8, 11].includes(jId)) {
+        console.log(`🚀 Sayfaya Gidiliyor: CustomerInventory (Job ID: ${jId})`);
+        
+        if (selectedInventory) {
+          return (
+            <RepairSummary
+              equipment={selectedInventory}
+              customer={selectedCustomer}
+              user={user}
+              onBack={() => setSelectedInventory(null)}
+              onComplete={() => {
+                setSelectedInventory(null);
+                setSelectedJobType(null);
+                setSelectedCategory(null);
+              }}
+            />
+          );
+        }
+        return (
+          <CustomerInventory 
+            customer={selectedCustomer} 
+            onBack={() => setSelectedJobType(null)}
+            onSelectEquipment={(eq) => setSelectedInventory(eq)} 
+          />
+        );
+      }
+
+      // --- MONTAJ AKIŞI: 1, 4, 7, 10 (Depo/Ana Envanterden Seçim) ---
+      if ([1, 4, 7, 10].includes(jId)) {
+        console.log(`🚀 Sayfaya Gidiliyor: InventorySelection (Job ID: ${jId})`);
+        
+        if (selectedInventory) {
+          return (
+            <InstallationSummary
+              customer={selectedCustomer}
+              category={selectedCategory}
+              jobType={selectedJobType}
+              inventory={selectedInventory}
+              user={user}
+              onBack={() => setSelectedInventory(null)}
+              onComplete={() => {
+                setSelectedInventory(null);
+                setSelectedJobType(null);
+                setSelectedCategory(null);
+              }}
+            />
+          );
+        }
+        return (
+          <InventorySelection 
+            customer={selectedCustomer} 
+            dealer={selectedCustomer.dealer_code} 
+            onBack={() => setSelectedJobType(null)} 
+            onSelectInventory={setSelectedInventory} 
+          />
+        );
+      }
     }
 
+    // 3. SEÇİM EKRANLARI SIRALAMASI
     if (selectedCategory) {
       return <JobTypeSelection category={selectedCategory} onBack={() => setSelectedCategory(null)} onSelectJob={setSelectedJobType} />;
     }
@@ -169,6 +213,7 @@ function MainApp() {
     return <StDashboard onLogout={handleLogout} onSelectCustomer={setSelectedCustomer} />;
   }
 
+  // C. LOGIN EKRANI (Role null ise)
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <View style={styles.blueBackground}>

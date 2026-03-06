@@ -77,7 +77,7 @@ export default {
     success_title: "TALEP OLUŞTURULDU",
     success_sub: "Kurulum talebi başarıyla sisteme işlendi.",
     reg_no: "KAYIT NUMARASI",
-    my_customers: "Müşterilerim"
+    my_customers: "Müşterileriye Dön"
   },
 
   verification: {
@@ -88,6 +88,21 @@ export default {
     list_title: "NOKTA ENVANTERİ",
     camera_permission: "Kamera izni gerekli",
     missing: "KAYIP"
+  },
+
+  repair: {
+    summary_title: "ARIZA ÖZETİ",
+    point_label: "ARIZA NOKTASI",
+    device_label: "ARIZALI CİHAZ",
+    note_label: "ARIZA NOTU VE DETAYLAR",
+    note_placeholder: "Arızayı detaylıca tarif ediniz (Örn: Soğutmuyor, Kapak kırık...)",
+    submit_btn: "ARIZAYI BİLDİR",
+    footer_info: "Oluşturulan talep bölge teknisyenine anlık olarak iletilecektir.",
+    fill_note: "Lütfen arıza detayını belirtiniz.",
+    submit_error: "Talebiniz iletilemedi.",
+    success_title: "TALEP ALINDI",
+    success_sub: "Arıza bildiriminiz teknik ekibe iletilmiştir.",
+    reg_no_label: "ARIZA KAYIT NO"
   }
 
 };

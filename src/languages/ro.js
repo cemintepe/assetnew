@@ -77,7 +77,7 @@ export default {
     success_title: "SOLICITARE CREATĂ",
     success_sub: "Solicitarea de instalare a fost procesată cu succes.",
     reg_no: "NUMĂR DE ÎNREGISTRARE",
-    my_customers: "Clienții Mei"
+    my_customers: "Înapoi la Clienți"
   },
 
   verification: {
@@ -88,5 +88,20 @@ export default {
     list_title: "INVENTAR PUNCT DE LUCRU",
     camera_permission: "Permisiune cameră necesară",
     missing: "LIPSEȘTE"
+  },
+
+  repair: {
+    summary_title: "REZUMAT DEFECȚIUNE",
+    point_label: "PUNCT DE REPARAȚIE",
+    device_label: "DISPOZITIV DEFECT",
+    note_label: "NOTE ȘI DETALII DEFECȚIUNE",
+    note_placeholder: "Descrieți defecțiunea în detaliu (ex: Nu răcește, capac rupt...)",
+    submit_btn: "RAPORTEAZĂ DEFECȚIUNEA",
+    footer_info: "Cererea creată va fi transmisă instantaneu tehnicianului regional.",
+    fill_note: "Vă rugăm să furnizați detaliile defecțiunii.",
+    submit_error: "Solicitarea dumneavoastră nu a putut fi trimisă.",
+    success_title: "CERERE RECEPȚIONATĂ",
+    success_sub: "Notificarea dumneavoastră a fost transmisă echipei tehnice.",
+    reg_no_label: "NR. ÎNREGISTRARE DEFECȚIUNE"
   }
 };

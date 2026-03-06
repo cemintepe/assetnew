@@ -76,7 +76,7 @@ export default {
     success_title: "REQUEST CREATED",
     success_sub: "Installation request has been successfully processed.",
     reg_no: "REGISTRATION NUMBER",
-    my_customers: "My Customers"
+    my_customers: "Back to Customers"
   },
 
   verification: {
@@ -87,6 +87,21 @@ export default {
     list_title: "SITE INVENTORY",
     camera_permission: "Camera permission required",
     missing: "MISSING"
+  },
+
+  repair: {
+    summary_title: "REPAIR SUMMARY",
+    point_label: "REPAIR POINT",
+    device_label: "DEFECTIVE DEVICE",
+    note_label: "REPAIR NOTES AND DETAILS",
+    note_placeholder: "Describe the fault in detail (e.g., Not cooling, broken lid...)",
+    submit_btn: "REPORT REPAIR",
+    footer_info: "The created request will be forwarded to the regional technician instantly.",
+    fill_note: "Please provide repair details.",
+    submit_error: "Your request could not be sent.",
+    success_title: "REQUEST RECEIVED",
+    success_sub: "Your repair notification has been forwarded to the technical team.",
+    reg_no_label: "REPAIR REGISTRATION NO"
   }
 
 };
