@@ -5,14 +5,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera'; 
+import { useLanguage } from './src/context/LanguageContext';
+import { useAuth } from './src/context/AuthContext';
 
 export default function VerificationEquipment({ customer, dealer, onBack }) {
+  const { t } = useLanguage();
+  const { user } = useAuth();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
-
-  // KRİTİK ÇÖZÜM: useRef anlık güncellenir, render beklemez.
+  
+  // Kilitleme mekanizması
   const isProcessing = useRef(false);
 
   useEffect(() => {
@@ -22,44 +26,42 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
   const fetchInventory = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://isletmem.online/asset/api/verification/inventory/${customer.customer_code}`);
+      // Customer Code uppercase yapılarak API'ye gönderiliyor
+      const cCode = String(customer?.customer_code || "").toUpperCase();
+      const response = await fetch(`https://isletmem.online/asset/api/verification/inventory/${cCode}`);
       const data = await response.json();
       if (data.status === 'success') {
         setInventory(data.inventory);
       }
     } catch (error) {
-      Alert.alert('Hata', 'Envanter listesi alınamadı.');
+      Alert.alert(t('common.error'), t('inventory.no_stock'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleBarCodeScanned = async ({ data }) => {
-    // 1. KİLİT: Eğer bir işlem yapılıyorsa FONKSİYONDAN HEMEN ÇIK
     if (isProcessing.current) return;
-    
-    // Kapıyı hemen kilitle
     isProcessing.current = true;
     
-    // Kamerayı anında kapat
+    // Okunan barkodu hemen normalize et
+    const scannedBarcode = String(data).trim().toUpperCase();
+    console.log("🔍 Barkod Yakalandı:", scannedBarcode);
+    
     setScannerVisible(false);
 
-    // Envanter kontrolü
-    const item = inventory.find(i => i.barcode === data);
+    // Envanter kontrolü (Uppercase karşılaştırma ile)
+    const item = inventory.find(i => String(i.barcode).toUpperCase() === scannedBarcode);
     
     if (!item) {
-      // Hata mesajını göster
       Alert.alert(
-        "Hatalı Ekipman", 
-        `Barkod: ${data}\n\nBu ekipman bu noktaya ait değildir!`, 
+        t('common.error'), 
+        `${t('inventory.barcode')}: ${scannedBarcode}\n\n${t('verification.not_belonging')}`, 
         [{ 
-          text: "Tamam", 
-          onPress: () => {
-            // SADECE TAMAM'A BASINCA KİLİDİ AÇ
-            isProcessing.current = false;
-          } 
+          text: t('common.ok'), 
+          onPress: () => { isProcessing.current = false; } 
         }],
-        { cancelable: false } // Boşluğa basınca kapanmasın
+        { cancelable: false }
       );
       return;
     }
@@ -70,20 +72,22 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          barcode_no: data,
-          customer_code: customer.customer_code,
-          user_code: 'ST001'
+          barcode_no: scannedBarcode,
+          customer_code: String(customer.customer_code).toUpperCase(),
+          user_code: String(user?.user_code || 'ST_HATA').toUpperCase()
         })
       });
       
       const resData = await response.json();
       if (resData.status === 'success') {
         await fetchInventory();
+        Alert.alert(t('common.success'), t('verification.verified_msg'),[{ text: t('common.ok'), onPress: () => { isProcessing.current = false; } }]);
+      } else {
+        isProcessing.current = false;
       }
     } catch (error) {
-      Alert.alert("Hata", "Sunucu hatası.");
+      Alert.alert(t('common.error'), "Server Error");
     } finally {
-      // İşlem bitince kilidi aç
       isProcessing.current = false;
     }
   };
@@ -92,11 +96,11 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
     if (!permission?.granted) {
       const { granted } = await requestPermission();
       if (!granted) {
-        Alert.alert("İzin Gerekli", "Kamera izni vermeniz gerekiyor.");
+        Alert.alert(t('common.error'), t('verification.camera_permission'));
         return;
       }
     }
-    isProcessing.current = false; // Açılışta kilidin açık olduğundan emin ol
+    isProcessing.current = false;
     setScannerVisible(true);
   };
 
@@ -130,7 +134,7 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Envanter Doğrulama</Text>
+        <Text style={styles.headerTitle}>{t('verification.title')}</Text>
       </View>
 
       <View style={styles.customerInfoBox}>
@@ -144,16 +148,16 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
       <View style={styles.actionRow}>
         <TouchableOpacity style={styles.scanButton} onPress={handleOpenScanner}>
           <Ionicons name="barcode-outline" size={24} color="white" />
-          <Text style={styles.scanButtonText}>BARKOD OKUT</Text>
+          <Text style={styles.scanButtonText}>{t('verification.scan_btn')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.blueFindButton} onPress={() => Alert.alert('BlueFind', 'Yakında aktif edilecek.')}>
+        <TouchableOpacity style={styles.blueFindButton} onPress={() => Alert.alert('BlueFind', 'Coming Soon')}>
           <Ionicons name="bluetooth" size={24} color="#0284c7" />
           <Text style={styles.blueFindText}>BLUEFIND TARA</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.listHeader}>
-        <Text style={styles.listTitle}>NOKTA ENVANTERİ</Text>
+        <Text style={styles.listTitle}>{t('verification.list_title')}</Text>
         <View style={styles.countBadge}>
           <Text style={styles.countText}>{verifiedCount}/{inventory.length}</Text>
         </View>
@@ -165,7 +169,7 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
         <FlatList
           data={inventory}
           renderItem={renderEquipment}
-          keyExtractor={item => item.barcode}
+          keyExtractor={(item, index) => item.barcode + index}
           contentContainerStyle={styles.listContent}
         />
       )}
@@ -174,7 +178,7 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
         <View style={styles.cameraContainer}>
           <CameraView
             style={StyleSheet.absoluteFillObject}
-            onBarcodeScanned={handleBarCodeScanned} // Kilidi içeride ref ile yönetiyoruz
+            onBarcodeScanned={isProcessing.current ? undefined : handleBarCodeScanned}
             barcodeScannerSettings={{
               barcodeTypes: ["qr", "ean13", "code128"],
             }}
@@ -190,7 +194,7 @@ export default function VerificationEquipment({ customer, dealer, onBack }) {
             style={styles.closeCameraButton} 
             onPress={() => setScannerVisible(false)}
           >
-            <Text style={styles.closeCameraText}>İPTAL</Text>
+            <Text style={styles.closeCameraText}>{t('common.cancel') || 'İPTAL'}</Text>
           </TouchableOpacity>
         </View>
       </Modal>

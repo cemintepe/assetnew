@@ -19,7 +19,8 @@ export default {
     complete: "Tamamla", // Virgül eklendi
     customer: "MÜŞTERİ",
     sap_code: "SAP KODU",
-    dealer: "BAYİ"
+    dealer: "BAYİ",
+    ok: "TAMAM"
   },
   dashboard: {
     welcome: "Hoş geldin",
@@ -58,7 +59,8 @@ export default {
     unit: "ADET",
     product_group: "ÜRÜN GRUBU",
     empty_depot: "Seçili bayinin deposu boş görünüyor.",
-    scanning: "Depo taranıyor..."
+    scanning: "Depo taranıyor...",
+    barcode: "BARKOD",
   },
 
   summary: {
@@ -76,6 +78,15 @@ export default {
     success_sub: "Kurulum talebi başarıyla sisteme işlendi.",
     reg_no: "KAYIT NUMARASI",
     my_customers: "Müşterilerim"
+  },
+
+  verification: {
+    title: "ENVANTER DOĞRULAMA",
+    scan_btn: "BARKOD OKUT",
+    not_belonging: "Bu ekipman bu noktaya ait değildir!",
+    verified_msg: "Ekipman başarıyla doğrulandı.",
+    list_title: "NOKTA ENVANTERİ",
+    camera_permission: "Kamera izni gerekli"
   }
 
 };

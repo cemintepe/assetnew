@@ -19,7 +19,8 @@ export default {
     complete: "Завершить",
     customer: "КЛИЕНТ",
     sap_code: "SAP КОД",
-    dealer: "ДИЛЕР"
+    dealer: "ДИЛЕР",
+    ok: "OK",
   },
   dashboard: {
     welcome: "Добро пожаловать",
@@ -57,7 +58,8 @@ export default {
     unit: "ШТ",
     product_group: "ГРУППА ТОВАРОВ",
     empty_depot: "Склад выбранного дилера пуст.",
-    scanning: "Сканирование склада..."
+    scanning: "Сканирование склада...",
+    barcode: "ШТРИХ-КОД"
   },
 
   summary: {
@@ -75,6 +77,15 @@ export default {
     success_sub: "Запрос на установку успешно внесен в систему.",
     reg_no: "РЕГИСТРАЦИОННЫЙ НОМЕР",
     my_customers: "Мои Клиенты"
+  },
+
+  verification: {
+    title: "ПРОВЕРКА ОБОРУДОВАНИЯ",
+    scan_btn: "СКАНЕР ШТРИХ-КОДА",
+    not_belonging: "Это оборудование не принадлежит этому объекту!",
+    verified_msg: "Оборудование успешно проверено.",
+    list_title: "ИНВЕНТАРЬ ОБЪЕКТА",
+    camera_permission: "Требуется разрешение на использование камеры"
   }
   
 };

@@ -19,7 +19,8 @@ export default {
     complete: "Complete",
     customer: "CUSTOMER",
     sap_code: "SAP CODE",
-    dealer: "DEALER"
+    dealer: "DEALER",
+    ok: "OK"
   },
   dashboard: {
     welcome: "Welcome",
@@ -57,7 +58,8 @@ export default {
     unit: "PCS",
     product_group: "PRODUCT GROUP",
     empty_depot: "Selected dealer's depot appears to be empty.",
-    scanning: "Scanning depot..."
+    scanning: "Scanning depot...",
+    barcode: "BARCODE"
   },
 
   summary: {
@@ -75,6 +77,15 @@ export default {
     success_sub: "Installation request has been successfully processed.",
     reg_no: "REGISTRATION NUMBER",
     my_customers: "My Customers"
+  },
+
+  verification: {
+    title: "EQUIPMENT VERIFICATION",
+    scan_btn: "SCAN BARCODE",
+    not_belonging: "This equipment does not belong to this location!",
+    verified_msg: "Equipment successfully verified.",
+    list_title: "SITE INVENTORY",
+    camera_permission: "Camera permission required"
   }
 
 };

@@ -19,7 +19,8 @@ export default {
     complete: "Finalizează",
     customer: "CLIENT",
     sap_code: "COD SAP",
-    dealer: "DEALER"
+    dealer: "DEALER",
+    ok: "OK"
   },
   dashboard: {
     welcome: "Bun venit",
@@ -56,7 +57,8 @@ export default {
     unit: "BUC",
     product_group: "GRUP DE PRODUSE",
     empty_depot: "Depozitul dealerului selectat pare a fi gol.",
-    scanning: "Scanare depozit..."
+    scanning: "Scanare depozit...",
+    barcode: "COD BARE"
   },
 
   summary: {
@@ -74,5 +76,14 @@ export default {
     success_sub: "Solicitarea de instalare a fost procesată cu succes.",
     reg_no: "NUMĂR DE ÎNREGISTRARE",
     my_customers: "Clienții Mei"
+  },
+
+  verification: {
+    title: "VERIFICARE ECHIPAMENT",
+    scan_btn: "SCANEAZĂ COD BARE",
+    not_belonging: "Acest echipament nu aparține acestei locații!",
+    verified_msg: "Echipament verificat cu succes.",
+    list_title: "INVENTAR PUNCT DE LUCRU",
+    camera_permission: "Permisiune cameră necesară"
   }
 };
