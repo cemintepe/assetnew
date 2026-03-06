@@ -48,5 +48,31 @@ export default {
     list_title: "DEFINIȚI TIPUL CERERII",
     inactive_msg: "nu este activă încă.",
     load_error: "Datele locale nu au putut fi citite."
+  },
+  inventory: {
+    title: "Selecție Inventar",
+    stock_status: "STOC CURENT ÎN DEPOZIT",
+    available: "DISPONIBIL",
+    unit: "BUC",
+    product_group: "GRUP DE PRODUSE",
+    empty_depot: "Depozitul dealerului selectat pare a fi gol.",
+    scanning: "Scanare depozit..."
+  },
+
+  summary: {
+    title: "Confirmare Solicitare",
+    installation_point: "PUNCT DE INSTALARE",
+    requested_equipment: "ECHIPAMENT SOLICITAT",
+    job_type: "TIPUL PROCESULUI",
+    source: "SURSĂ",
+    depot: "DEPOZIT DEALER",
+    note_label: "NOTĂ PROCES (OPȚIONAL)",
+    note_placeholder: "Orice note pentru tehnician...",
+    confirm_btn: "CONFIRMĂ SOLICITAREA",
+    footer_info: "ODATĂ CONFIRMATĂ, O COMANDĂ DE LUCRU AUTOMATĂ VA FI CREATĂ ÎN SISTEM.",
+    success_title: "SOLICITARE CREATĂ",
+    success_sub: "Solicitarea de instalare a fost procesată cu succes.",
+    reg_no: "NUMĂR DE ÎNREGISTRARE",
+    my_customers: "Clienții Mei"
   }
 };

@@ -5,18 +5,23 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from './supabase';
+import { useLanguage } from './src/context/LanguageContext';
 
 
 export default function InventorySelection({ customer, dealer, onBack, onSelectInventory }) {
+  const { t } = useLanguage();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("--- ENVANTER EKRANI TETİKLENDİ ---");
+    console.log("Seçili Bayi (Dealer):", dealer); 
     fetchInventory();
   }, [dealer]); // dealer değişirse tekrar çek
 
   const fetchInventory = async () => {
     try {
+      console.log("ADIM 1: Ekipman Verisi çekme işlemi başlıyor...")
       setLoading(true);
       
       // SUPABASE SORGUSU
@@ -26,31 +31,64 @@ export default function InventorySelection({ customer, dealer, onBack, onSelectI
         .select('*')
         .eq('current_location_code', dealer);
 
-      if (error) throw error;
+      if (error) {
+        console.error("ADIM 2 [HATA]: Supabase sorgusu başarısız!", error);
+        throw error;
+      }
 
+      console.log(`ADIM 3: Ham veri çekildi. Toplam cihaz satırı: ${data.length}`);
+
+      // --- GRUPLAMA MANTIĞI BAŞLADI ---
+      console.log("ADIM 4: Gruplama (Aggregation) işlemi başlıyor...");
+      const groupedData = data.reduce((acc, item) => {
+        // Ürünleri material_description veya type_code'a göre gruplayabiliriz
+        const key = item.material_description; 
+        
+        if (!acc[key]) {
+          console.log(`> Yeni ürün grubu oluşturuluyor: ${key}`);
+          // Eğer bu ürün listede yoksa yeni oluştur
+          acc[key] = { ...item, total: 1 };
+        } else {
+          // Varsa total'i bir artır
+          acc[key].total += 1;
+        }
+        return acc;
+      }, {});
+
+      // --- GRUPLAMA MANTIĞI BİTTİ ---
+      const finalArray = Object.values(groupedData);
+      console.log(`ADIM 5: Gruplama bitti. ${data.length} cihaz, ${finalArray.length} farklı gruba indirgendi.`);
       // Eğer Supabase'de her cihaz tek satırsa ve gruplama (count) yapmak istersen:
       // (Şimdilik Laravel'den gelen yapıya uygun bir 'total' alanı olduğunu varsayıyoruz)
-      setInventory(data);
+      setInventory(Object.values(groupedData))
 
     } catch (error) {
       console.error("Stok Hatası:", error);
       Alert.alert('Hata', 'Depo stokları yüklenemedi: ' + error.message);
     } finally {
+      console.log("ADIM 6: İşlem tamamlandı, loading kapatılıyor.");
       setLoading(false);
     }
+  };
+
+  const handleSelect = (item) => {
+    console.log("--- SEÇİM YAPILDI ---");
+    console.log("Seçilen Ürün Grubu:", item.material_description);
+    console.log("Mevcut Adet:", item.total);
+    onSelectInventory(item);
   };
 
   const renderItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.inventoryItem} 
-      onPress={() => onSelectInventory(item)}
+      onPress={() => handleSelect(item)}
     >
       <View style={styles.itemLeft}>
         <View style={styles.badgeRow}>
           <View style={styles.typeBadge}>
             <Text style={styles.typeBadgeText}>{item.type_code}</Text>
           </View>
-          <Text style={styles.stockCountText}>MEVCUT: {item.total} ADET</Text>
+          <Text style={styles.stockCountText}>{t('inventory.available')}: {item.total || 0} {t('inventory.unit')}</Text>
         </View>
         <Text style={styles.materialDesc}>{item.material_description.toUpperCase()}</Text>
       </View>
@@ -65,24 +103,24 @@ export default function InventorySelection({ customer, dealer, onBack, onSelectI
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Envanter Seçimi</Text>
+        <Text style={styles.headerTitle}>{t('inventory.title')}</Text>
       </View>
 
       {/* Müşteri ve Bayi Bilgi Paneli */}
       <View style={styles.infoBox}>
         <View style={styles.infoTop}>
-          <Text style={styles.infoLabel}>MÜŞTERİ</Text>
-          <Text style={styles.dealerLabel}>BAYİ: {dealer}</Text>
+          <Text style={styles.infoLabel}>{t('common.customer').toUpperCase()}</Text>
+          <Text style={styles.dealerLabel}>{t('common.dealer')}: {dealer}</Text>
         </View>
         <Text style={styles.customerName}>{customer.name.toUpperCase()}</Text>
-        <Text style={styles.sapCode}>SAP: {customer.customer_code}</Text>
+        <Text style={styles.sapCode}>{customer.customer_code}</Text>
       </View>
 
       <View style={styles.subTitleRow}>
-        <Text style={styles.subTitle}>MEVCUT DEPO STOK</Text>
+        <Text style={styles.subTitle}>{t('inventory.stock_status')}</Text>
         {!loading && (
           <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{inventory.length} ÜRÜN GRUBU</Text>
+            <Text style={styles.countBadgeText}>{inventory.length} {t('inventory.product_group')}</Text>
           </View>
         )}
       </View>
@@ -90,7 +128,7 @@ export default function InventorySelection({ customer, dealer, onBack, onSelectI
       {loading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#004a99" />
-          <Text style={styles.loaderText}>Depo taranıyor...</Text>
+          <Text style={styles.loaderText}>{t('inventory.scanning')}</Text>
         </View>
       ) : (
         <FlatList
@@ -100,7 +138,7 @@ export default function InventorySelection({ customer, dealer, onBack, onSelectI
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="cube-outline" size={50} color="#eee" />
-              <Text style={styles.emptyText}>Seçili bayinin deposu boş görünüyor.</Text>
+              <Text style={styles.emptyText}>{t('inventory.no_stock')}</Text>
             </View>
           }
         />

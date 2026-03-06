@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Asset Project",
-    "slug": "https://expo.dev/accounts/cemintepe/projects/AssetMobiletMobil",
+    "slug": "AssetMobil",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

@@ -49,6 +49,33 @@ export default {
     list_title: "TALEP TİPİNİ BELİRLEYİN",
     inactive_msg: "işlemi henüz aktif değildir.",
     load_error: "Yerel veriler okunamadı."
+  },
+
+  inventory: {
+    title: "Envanter Seçimi",
+    stock_status: "MEVCUT DEPO STOK",
+    available: "MEVCUT",
+    unit: "ADET",
+    product_group: "ÜRÜN GRUBU",
+    empty_depot: "Seçili bayinin deposu boş görünüyor.",
+    scanning: "Depo taranıyor..."
+  },
+
+  summary: {
+    title: "İşlem Onayı",
+    installation_point: "KURULUM NOKTASI",
+    requested_equipment: "TALEP EDİLEN EKİPMAN",
+    job_type: "İŞLEM TİPİ",
+    source: "KAYNAK",
+    depot: "BAYİ DEPO",
+    note_label: "İŞLEM NOTU (OPSİYONEL)",
+    note_placeholder: "Teknisyene iletmek istediğiniz notlar...",
+    confirm_btn: "TALEBİ ONAYLA",
+    footer_info: "TALEBİ ONAYLADIĞINIZDA SİSTEMDE OTOMATİK İŞ EMRİ AÇILACAKTIR.",
+    success_title: "TALEP OLUŞTURULDU",
+    success_sub: "Kurulum talebi başarıyla sisteme işlendi.",
+    reg_no: "KAYIT NUMARASI",
+    my_customers: "Müşterilerim"
   }
 
 };

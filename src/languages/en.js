@@ -48,5 +48,33 @@ export default {
     list_title: "DEFINE REQUEST TYPE",
     inactive_msg: "is not active yet.",
     load_error: "Local data could not be read."
+  },
+  
+  inventory: {
+    title: "Inventory Selection",
+    stock_status: "CURRENT STOCK IN DEPOT",
+    available: "AVAILABLE",
+    unit: "PCS",
+    product_group: "PRODUCT GROUP",
+    empty_depot: "Selected dealer's depot appears to be empty.",
+    scanning: "Scanning depot..."
+  },
+
+  summary: {
+    title: "Request Confirmation",
+    installation_point: "INSTALLATION POINT",
+    requested_equipment: "REQUESTED EQUIPMENT",
+    job_type: "PROCESS TYPE",
+    source: "SOURCE",
+    depot: "DEALER DEPOT",
+    note_label: "PROCESS NOTE (OPTIONAL)",
+    note_placeholder: "Any notes for the technician...",
+    confirm_btn: "CONFIRM REQUEST",
+    footer_info: "ONCE CONFIRMED, AN AUTOMATIC WORK ORDER WILL BE CREATED IN THE SYSTEM.",
+    success_title: "REQUEST CREATED",
+    success_sub: "Installation request has been successfully processed.",
+    reg_no: "REGISTRATION NUMBER",
+    my_customers: "My Customers"
   }
+
 };
