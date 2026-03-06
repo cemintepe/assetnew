@@ -28,7 +28,7 @@ export default function InstallationSummary({ customer, category, jobType, inven
       type_code: inventory?.type_code || "TIP_YOK",
       material_description: inventory?.material_description || "DESC_YOK",
       note: note || "",
-      username: user?.username || "BILINMEYEN_USER",
+      username: String(user?.user_code || "KOD_YOK").toUpperCase(),
       status: 'PENDING',
       created_at: new Date().toISOString()
     };

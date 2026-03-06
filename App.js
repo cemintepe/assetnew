@@ -142,6 +142,7 @@ function MainApp() {
           category={selectedCategory}
           jobType={selectedJobType}
           inventory={selectedInventory}
+          user={user}
           onBack={() => setSelectedInventory(null)}
           onComplete={() => {
             setSelectedInventory(null);
