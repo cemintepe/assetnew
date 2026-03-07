@@ -103,5 +103,19 @@ export default {
     success_title: "CERERE RECEPȚIONATĂ",
     success_sub: "Notificarea dumneavoastră a fost transmisă echipei tehnice.",
     reg_no_label: "NR. ÎNREGISTRARE DEFECȚIUNE"
+  },
+
+remove: {
+    summary_title: "REZUMAT DEMONTARE",
+    point_label: "PUNCT DE DEMONTARE",
+    device_label: "DISPOZITIV DE DEMONTAT",
+    note_label: "MOTIVUL DEMONTĂRII",
+    note_placeholder: "De ce este demontat dispozitivul? (ex: Punct închis, echipament în plus...)",
+    submit_btn: "CONFIRMĂ DEMONTAREA",
+    success_title: "CERERE DE DEMONTARE RECEPȚIONATĂ",
+    success_sub: "Cererea de demontare a echipamentului a fost adăugată cu succes în coadă.",
+    reg_no_label: "NR. ÎNREGISTRARE DEMONTARE",
+    fill_reason: "Vă rugăm să specificați motivul demontării.",
+    submit_error: "Cererea de demontare nu a putut fi trimisă."
   }
 };

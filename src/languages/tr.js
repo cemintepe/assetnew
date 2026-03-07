@@ -77,7 +77,7 @@ export default {
     success_title: "TALEP OLUŞTURULDU",
     success_sub: "Kurulum talebi başarıyla sisteme işlendi.",
     reg_no: "KAYIT NUMARASI",
-    my_customers: "Müşterileriye Dön"
+    my_customers: "Müşteriye Dön"
   },
 
   verification: {
@@ -103,6 +103,20 @@ export default {
     success_title: "TALEP ALINDI",
     success_sub: "Arıza bildiriminiz teknik ekibe iletilmiştir.",
     reg_no_label: "ARIZA KAYIT NO"
+  },
+
+  remove: {
+    summary_title: "SÖKME ÖZETİ",
+    point_label: "SÖKÜLECEK NOKTA",
+    device_label: "SÖKÜLECEK CİHAZ",
+    note_label: "SÖKME NEDENİ",
+    note_placeholder: "Cihaz neden sökülüyor? (Örn: Nokta kapandı, Cihaz fazlası...)",
+    submit_btn: "SÖKMEYİ ONAYLA",
+    success_title: "SÖKME TALEBİ ALINDI",
+    success_sub: "Ekipman sökme işlemi sıraya alınmıştır.",
+    reg_no_label: "SÖKME KAYIT NO",
+    fill_reason: "Lütfen sökme nedenini belirtiniz.",
+    submit_error: "Sökme talebi iletilemedi."
   }
 
 };

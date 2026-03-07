@@ -102,6 +102,20 @@ export default {
     success_title: "REQUEST RECEIVED",
     success_sub: "Your repair notification has been forwarded to the technical team.",
     reg_no_label: "REPAIR REGISTRATION NO"
+  },
+
+remove: {
+    summary_title: "REMOVAL SUMMARY",
+    point_label: "REMOVAL POINT",
+    device_label: "DEVICE TO BE REMOVED",
+    note_label: "REASON FOR REMOVAL",
+    note_placeholder: "Why is the device being removed? (e.g., Point closed, excess equipment...)",
+    submit_btn: "CONFIRM REMOVAL",
+    success_title: "REMOVAL REQUEST RECEIVED",
+    success_sub: "The equipment removal request has been successfully queued.",
+    reg_no_label: "REMOVAL REGISTRATION NO",
+    fill_reason: "Please provide a reason for removal.",
+    submit_error: "Removal request could not be sent."
   }
 
 };

@@ -13,6 +13,15 @@ export default function RepairSummary({ equipment, customer, user, onBack, onCom
   const [loading, setLoading] = useState(false);
   const [successData, setSuccessData] = useState(null);
 
+    const generateRequestID = (prefix) => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    const random = Math.floor(1000 + Math.random() * 9000); // 4 haneli random
+    return `${prefix}${day}${month}${year}${random}`;
+    };
+
   const handleSubmit = async () => {
     if (!note.trim()) {
       Alert.alert(t('auth.error') || "Hata", t('repair.fill_note') || "Lütfen arıza detayını belirtiniz.");
@@ -20,14 +29,15 @@ export default function RepairSummary({ equipment, customer, user, onBack, onCom
     }
 
     setLoading(true);
-    
+    const requestId = generateRequestID('REP');
     const payload = {
+      request_id: requestId,
       barcode_no: equipment.barcode,
       customer_code: customer.customer_code,
       equipment_number: equipment.equipment_number,
       material_description: equipment.material_description,
       issue_note: note,
-      user_code: user.user_code,
+      user_code: String(user.user_code).toUpperCase(),
       status: 'PENDING',
       created_at: new Date().toISOString()
     };
@@ -41,8 +51,7 @@ export default function RepairSummary({ equipment, customer, user, onBack, onCom
       if (error) throw error;
 
       if (data && data.length > 0) {
-        const displayId = data[0].id.toString().split('-')[0].toUpperCase();
-        setSuccessData(displayId);
+        setSuccessData(requestId);
       } else {
         setSuccessData("SUCCESS");
       }

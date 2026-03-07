@@ -13,16 +13,24 @@ export default function InstallationSummary({ customer, category, jobType, inven
   const [loading, setLoading] = useState(false);
   const [successData, setSuccessData] = useState(null);
 
-  
+      const generateRequestID = (prefix) => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    const random = Math.floor(1000 + Math.random() * 9000); // 4 haneli random
+    return `${prefix}${day}${month}${year}${random}`;
+    };
 
   const submitRequest = async () => {
     console.log("--- DEBUG BAŞLADI ---");
     console.log("ADIM 1: Fonksiyon tetiklendi.");
     setLoading(true);
-    
+    const requestId = generateRequestID('INS');
     // 1. Veri Paketini Hazırla
     // Safe check: Objelerin varlığını kontrol ediyoruz
     const payload = {
+      request_id: requestId,
       customer_code: customer?.customer_code || "KOD_YOK",
       dealer_code: customer?.dealer_code || "BAYI_YOK",
       type_code: inventory?.type_code || "TIP_YOK",
@@ -58,11 +66,10 @@ export default function InstallationSummary({ customer, category, jobType, inven
       // 3. Başarılı ise Kayıt Numarasını Göster
       if (data && data.length > 0) {
         console.log("ADIM 7: Kayıt ID oluşturuluyor.");
-        const displayId = data[0].id.toString().split('-')[0].toUpperCase();
-        setSuccessData(displayId);
+        setSuccessData(requestId);
       } else {
         console.log("ADIM 7: Data boş ama hata yok. Fallback çalışıyor.");
-        setSuccessData("SUCCESS"); 
+        setSuccessData("requestId"); 
       }
 
     } catch (e) {

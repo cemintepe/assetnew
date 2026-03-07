@@ -23,6 +23,8 @@ import TechRequestDetail from './TechRequestDetail';
 import VerificationEquipment from './VerificationEquipment';
 import CustomerInventory from './CustomerInventory';
 import RepairSummary from './RepairSummary';
+import RemoveSummary from './RemoveSummary';
+
 
 // --- ANA GİRİŞ NOKTASI ---
 export default function App() {
@@ -169,6 +171,35 @@ function MainApp() {
         );
       }
 
+      // --- BURAYA EKLE: SÖKME (REMOVE) AKIŞI: 3, 6, 9, 12 ---
+      if ([3, 6, 9, 12].includes(jId)) {
+        console.log(`🚀 Sayfaya Gidiliyor: CustomerInventory (Job ID: ${jId})`);
+        
+        if (selectedInventory) {
+          return (
+            <RemoveSummary
+              equipment={selectedInventory}
+              customer={selectedCustomer}
+              user={user}
+              onBack={() => setSelectedInventory(null)}
+              onComplete={() => {
+                setSelectedInventory(null);
+                setSelectedJobType(null);
+                setSelectedCategory(null);
+                setSelectedCustomer(null); 
+              }}
+            />
+          );
+        }
+        return (
+          <CustomerInventory 
+            customer={selectedCustomer} 
+            onBack={() => setSelectedJobType(null)}
+            onSelectEquipment={(eq) => setSelectedInventory(eq)} 
+          />
+        );
+      }
+
       // --- MONTAJ AKIŞI: 1, 4, 7, 10 (Depo/Ana Envanterden Seçim) ---
       if ([1, 4, 7, 10].includes(jId)) {
         console.log(`🚀 Sayfaya Gidiliyor: InventorySelection (Job ID: ${jId})`);
@@ -200,6 +231,8 @@ function MainApp() {
         );
       }
     }
+
+ 
 
     // 3. SEÇİM EKRANLARI SIRALAMASI
     if (selectedCategory) {
